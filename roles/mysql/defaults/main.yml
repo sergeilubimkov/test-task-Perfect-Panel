@@ -1,0 +1,9 @@
+---
+# defaults file for deploy_mysql
+
+mysql_root_password: "12345678"
+mysql_packages:
+  - "mysql-server"
+  - "mysql-client"
+  - "python3-mysqldb"
+  - "libmysqlclient-dev"

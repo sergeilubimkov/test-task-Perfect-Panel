@@ -1,0 +1,94 @@
+---
+# tasks file for deploy_server
+
+- name: Install Require Packages
+  ansible.builtin.apt:
+    name: "{{ item }}"
+    update_cache: true
+    state: present
+  loop:
+    - "{{ system_require_packages }}"
+
+- name: Set TimeZone
+  community.general.timezone:
+    name: "Etc/UTC"
+
+- name: Delete Debian User
+  ansible.builtin.user:
+    name: "debian"
+    state: absent
+    remove: true
+
+- name: Create Deploy Group
+  ansible.builtin.group:
+    name: "{{ system_deploy_group }}"
+    state: present
+
+- name: Create Deploy User
+  ansible.builtin.user:
+    name: "{{ system_deploy_user }}"
+    groups: "sudo,{{ system_deploy_group }}"
+    create_home: true
+    shell: "/bin/bash"
+    state: present
+
+- name: Create SSH Directory
+  ansible.builtin.file:
+    path: "/home/{{ system_deploy_user }}/.ssh"
+    state: directory
+    owner: "{{ system_deploy_user }}"
+    group: "{{ system_deploy_group }}"
+    mode: "0700"
+
+- name: Copy SSH Keys
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ system_deploy_user }}"
+    group: "{{ system_deploy_group }}"
+    mode: "0600"
+  loop:
+    - { src: "dev_id_rsa.pub", dest: "/home/{{ system_deploy_user }}/.ssh/authorized_keys" }
+    - { src: "dev_id_rsa.pub", dest: "/home/{{ system_deploy_user }}/.ssh/dev_id_rsa.pub" }
+    - { src: "dev_id_rsa", dest: "/home/{{ system_deploy_user }}/.ssh/dev_id_rsa" }
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Update Kernel Options
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: true
+  loop:
+    - { name: "net.ipv4.ip_local_port_range", value: "1024 65535" }
+    - { name: "fs.nr_open", value: "2000000" }
+    - { name: "fs.file-max", value: "5000000" }
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Set DefaultLimitNOFILE in system.conf
+  community.general.ini_file:
+    path: "/etc/systemd/system.conf"
+    section: ""
+    option: DefaultLimitNOFILE
+    value: "6500535"
+    no_extra_spaces: true
+  notify:
+    - "Reload systemd"
+
+- name: Set pam_limits for users
+  community.general.pam_limits:
+    domain: "{{ item.domain }}"
+    limit_type: "{{ item.limit_type }}"
+    limit_item: "{{ item.limit_item }}"
+    value: "{{ item.value }}"
+  loop:
+    - { domain: "root", limit_type: "hard", limit_item: "nofile", value: "6500536" }
+    - { domain: "root", limit_type: "soft", limit_item: "nofile", value: "6500535" }
+    - { domain: "*", limit_type: "soft", limit_item: "nofile", value: "40000000" }
+    - { domain: "*", limit_type: "hard", limit_item: "nofile", value: "40000000" }
+
+- name: Flush handlers
+  ansible.builtin.meta:
+    flush_handlers

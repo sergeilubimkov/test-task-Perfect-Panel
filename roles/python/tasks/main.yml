@@ -1,0 +1,44 @@
+---
+# tasks file for python
+
+- name: Create Build Directory
+  ansible.builtin.file:
+    path: /opt/python_build
+    state: directory
+    mode: "0755"
+
+- name: Download Python archive .tgz
+  ansible.builtin.get_url:
+    url: https://www.python.org/ftp/python/3.13.5/Python-3.13.5.tgz
+    dest: "{{ python_build_directory }}/Python-3.13.5.tgz"
+
+- name: Python archive .tgz
+  ansible.builtin.unarchive:
+    src: "{{ python_build_directory }}/Python-3.13.5.tgz"
+    dest: "{{ python_build_directory }}"
+    remote_src: true
+
+- name: Configure Python build
+  command: ./configure --prefix={{ python_path_prefix }} --enable-optimizations
+  args:
+    chdir: "{{ python_build_directory }}/Python-3.13.5"
+
+- name: Build and install Python
+  community.general.make:
+    chdir: "{{ python_build_directory }}/Python-3.13.5"
+    target: install
+    params:
+      j: "{{ ansible_processor_cores | default(2) }}"
+
+- name: Upgrade PIP
+  ansible.builtin.pip:
+    name: pip
+    executable: "{{ python_path_prefix }}/bin/pip3"
+    state: latest
+
+- name: Install Dependecies PIP
+  ansible.builtin.pip:
+    name: "{{ item }}"
+    executable: "{{ python_path_prefix }}/bin/pip3"
+  loop:
+    - "{{ python_require_pip_deps }}"

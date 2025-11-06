@@ -1,0 +1,23 @@
+---
+# handlers file for nginx
+
+- name: Restart Logrotate
+  ansible.builtin.systemd:
+    name: logrotate
+    state: restarted
+    enabled: true
+    daemon_reload: true
+
+- name: Restart Nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+    enabled: true
+    daemon_reload: true
+
+- name: Reload Nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: reloaded
+    enabled: true
+    daemon_reload: true

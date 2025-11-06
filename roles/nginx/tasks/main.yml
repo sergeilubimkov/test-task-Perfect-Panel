@@ -1,0 +1,57 @@
+---
+# tasks file for nginx
+
+- name: Install Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+  notify:
+    - "Restart Nginx"
+
+- name: Create Nginx Directory
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    owner: "{{ item.owner | default(nginx_default_user) }}"
+    group: "{{ item.group | default(nginx_default_group)}}"
+    mode: "{{ item.mode | default('0644')}}"
+    state: directory
+  loop:
+    - { path: "{{ nginx_conf_folder }}/projects_conf" }
+    - { path: "{{ nginx_conf_folder }}/projects", owner: "{{ nginx_conf_user }}", group: "{{ nginx_conf_group }}", mode: "0777" }
+    - { path: "{{ nginx_conf_folder }}/projects/panels", owner: "{{ nginx_conf_user }}", group: "{{ nginx_conf_group }}", mode: "0777" }
+    - { path: "/var/www/server/frontend/shared/runtime/GeoIP" }
+  loop_control:
+    label: "{{ item.path }}"
+  notify:
+    - "Reload Nginx"
+
+- name: Copy nginx.conf
+  ansible.builtin.copy:
+    src: "nginx.conf_"
+    dest: "{{ nginx_conf_folder }}/nginx.conf"
+    owner: "{{ nginx_default_user }}"
+    group: "{{ nginx_default_group }}"
+    mode: "0644"
+  notify:
+    - "Reload Nginx"
+
+- name: Install logrotate
+  ansible.builtin.apt:
+    name: logrotate
+    state: present
+    update_cache: true
+
+- name: Copy configuration Logrotate
+  ansible.builtin.copy:
+    src: "logrotate.conf"
+    dest: "/etc/logrotate.d/nginx"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  notify:
+    - "Restart Logrotate"
+
+- name: Flush handlers
+  ansible.builtin.meta:
+    flush_handlers

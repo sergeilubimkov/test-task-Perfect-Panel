@@ -1,0 +1,37 @@
+---
+# tasks file for deploy_mysql
+
+- name: Download MySQL APT repository package
+  ansible.builtin.get_url:
+    url: https://repo.mysql.com//mysql-apt-config_0.8.36-1_all.deb
+    dest: /tmp/mysql-apt-config.deb
+    mode: "0644"
+
+- name: Install MySQL APT repo package
+  ansible.builtin.apt:
+    deb: "/tmp/mysql-apt-config.deb"
+
+- name: Install MySQL packages
+  ansible.builtin.apt:
+    name: "{{ mysql_packages }}"
+    state: present
+    update_cache: true
+  notify:
+    - "Restarted MySQL"
+
+- name: Wait for MySQL to be up on master
+  ansible.builtin.wait_for:
+    host: "localhost"
+    port: 3306
+    delay: 10
+    state: started
+
+#- name: Ensure root@localhost has expected password
+#  community.mysql.mysql_user:
+#    name: root
+#    host: localhost
+#    password: "{{ mysql_root_password }}"
+#    login_unix_socket: /var/run/mysqld/mysqld.sock
+#    check_implicit_admin: true
+#    update_password: always
+#    state: present

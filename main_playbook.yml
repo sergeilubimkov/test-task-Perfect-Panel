@@ -1,0 +1,15 @@
+---
+- name: Deploy Server
+  hosts: all
+  become: true
+
+  roles:
+    - system
+    - composer
+    - mysql
+    - python
+    - nginx
+
+  tasks:
+    - name: Reboot system
+      reboot:

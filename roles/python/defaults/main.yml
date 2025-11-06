@@ -1,0 +1,11 @@
+---
+# defaults file for python
+python_require_pip_deps:
+  - "pycurl"
+  - "mysqlclient"
+  - "mysql.connector"
+  - "certifi"
+  - "redis"
+  - "sentry-sdk"
+python_build_directory: "/opt/python_build"
+python_path_prefix: "/opt/python3"

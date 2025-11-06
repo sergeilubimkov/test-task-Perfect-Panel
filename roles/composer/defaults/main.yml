@@ -1,0 +1,9 @@
+---
+# defaults file for composer
+
+composer_install_path: "/usr/local/bin/composer"
+composer_php_packages:
+  - "php"
+  - "php-cli"
+  - "php-xml"
+  - "php-mbstring"
